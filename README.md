@@ -6,10 +6,8 @@
 include_once('DifflexClient.php');
 
 $app_key = 'xxxxxxxxxxxxxxxxxxxxx';
-$uid = $user_id;
 
 $client = new DifflexClient($app_key);
-$client->set_uid($uid);
 ```
 
 ## Send update cart
@@ -33,6 +31,7 @@ $client->track('cartUpdate', $properties);
 
 ```php
 $visitor = array(
+  'uid' => '123',
   'firstName' => 'User',
   'email' => 'mail@example.net'
 );

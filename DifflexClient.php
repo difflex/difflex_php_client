@@ -1,26 +1,24 @@
 <?php
 
-/* Difflex Event client */
+/*
+Copyright Difflex https://difflex.ru
+*/
 
 class DifflexClient {
   private $debug = false;
-  private $version = '0.1.1';
+  private $version = '0.1.2';
   private $tracker_name = 'php-tracker';
   private $endpoint = 'https://tracker.difflex.ru/event';
   private $app_key;
-  private $uid = null;
   private $visitor = array();
   private $access_key = null;
+  private $cookie_name = 'difflex_uid';
 
   public function __construct($app_key) {
     $this->app_key = (string) $app_key;
   }
 
-  public function set_uid($uid) {
-    $this->uid = (string) $uid;
-  }
-
-  public function debug($value) {
+  public function set_debug($value) {
     $this->debug = (bool) $value;
   }
 
@@ -44,14 +42,21 @@ class DifflexClient {
   private function send($event_name, $properties, $data, $context, $truePerformedAt) {
     if (!isset($this->app_key)) return false;
 
-    // Allow send orderUpdate event without uid
-    if (!isset($this->uid) || ($event_name == 'orderUpdate' && !empty($properties['number']))) return false;
+    $cookie_uid = !empty($_COOKIE[$this->cookie_name]) ? stripslashes($_COOKIE[$this->cookie_name]) : null;
+
+    if ($event_name == 'orderUpdate') {
+      $cookie_uid = null;
+      if (empty($properties['number'])) return false;
+    } else {
+      if (!isset($cookie_uid) && !isset($this->visitor['uid'])) return false;
+    }
 
     $data = $data ? $data : array();
     $data['appKey'] = $this->app_key;
     $data['name'] = $event_name;
     $data['performedAt'] = time();
-    $data['uuid'] = $uid;
+    if ($cookie_uid) $data['uuid'] = $cookie_uid;
+
     $data['clientVersion'] = $this->version;
     $data['clienType'] = 'php-tracker';
     $data['visitor'] = $this->visitor;
@@ -68,7 +73,7 @@ class DifflexClient {
         'content' => $post
       )
     ));
-    return file_get_contents("{$this->endpoint}/event", false, $opts);
+    return @file_get_contents("{$this->endpoint}/event", false, $opts);
   }
 
   private function put_log($post) {
